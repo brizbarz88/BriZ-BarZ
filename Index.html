@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BriZ BarZ</title>
+
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+
+    h1 {
+      margin: 20px 0 5px;
+    }
+
+    #combo {
+      font-size: 22px;
+      margin: 10px;
+    }
+
+    #board {
+      width: 95vw;
+      max-width: 500px;
+      margin: 20px auto;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+
+    .word {
+      background: #222;
+      border: 2px solid #555;
+      border-radius: 10px;
+      padding: 18px 5px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .selected {
+      background: #8b2cff;
+      border-color: white;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>🎤 BriZ BarZ</h1>
+  <div id="combo">Combo: 0</div>
+
+  <div id="board"></div>
+
+  <script>
+
+    const words = [
+      "FIRE", "HIGHER", "TIRED", "ENTIRE",
+      "CAT", "HAT", "BAT", "DOG",
+      "LIGHT", "NIGHT", "FIGHT", "FLIGHT",
+      "BLUE", "TRUE", "CREW", "NEW"
+    ];
+
+    let selected = [];
+    let combo = 0;
+
+    const board = document.getElementById("board");
+
+    function createBoard() {
+      board.innerHTML = "";
+
+      words.forEach((word, index) => {
+        const tile = document.createElement("div");
+
+        tile.className = "word";
+        tile.textContent = word;
+
+        tile.onclick = () => selectWord(tile, word);
+
+        board.appendChild(tile);
+      });
+    }
+
+    function selectWord(tile, word) {
+
+      if (selected.includes(word)) return;
+
+      selected.push(word);
+      tile.classList.add("selected");
+
+      if (selected.length >= 3) {
+        combo++;
+        document.getElementById("combo").textContent =
+          "Combo: " + combo;
+
+        setTimeout(() => {
+          selected.forEach(w => {
+            const tiles = document.querySelectorAll(".word");
+
+            tiles.forEach(t => {
+              if (t.textContent === w) {
+                t.style.visibility = "hidden";
+              }
+            });
+          });
+
+          selected = [];
+
+        }, 300);
+      }
+    }
+
+    createBoard();
+
+  </script>
+
+</body>
+</html>
