@@ -22,6 +22,12 @@
       margin: 10px;
     }
 
+    #message {
+      height: 25px;
+      font-size: 18px;
+      margin: 5px;
+    }
+
     #board {
       width: 95vw;
       max-width: 500px;
@@ -46,17 +52,31 @@
       background: #8b2cff;
       border-color: white;
     }
+
+    .wrong {
+      background: #8b2222;
+      border-color: white;
+    }
   </style>
 </head>
 
 <body>
 
   <h1>🎤 BriZ BarZ</h1>
+
   <div id="combo">Combo: 0</div>
+  <div id="message">Connect 3 rhyming words!</div>
 
   <div id="board"></div>
 
   <script>
+
+    const rhymeFamilies = {
+      fire: ["FIRE", "HIGHER", "TIRED", "ENTIRE"],
+      cat: ["CAT", "HAT", "BAT"],
+      light: ["LIGHT", "NIGHT", "FIGHT", "FLIGHT"],
+      blue: ["BLUE", "TRUE", "CREW", "NEW"]
+    };
 
     const words = [
       "FIRE", "HIGHER", "TIRED", "ENTIRE",
@@ -69,11 +89,22 @@
     let combo = 0;
 
     const board = document.getElementById("board");
+    const message = document.getElementById("message");
+
+    function getRhymeFamily(word) {
+      for (const family in rhymeFamilies) {
+        if (rhymeFamilies[family].includes(word)) {
+          return family;
+        }
+      }
+
+      return null;
+    }
 
     function createBoard() {
       board.innerHTML = "";
 
-      words.forEach((word, index) => {
+      words.forEach(word => {
         const tile = document.createElement("div");
 
         tile.className = "word";
@@ -92,25 +123,73 @@
       selected.push(word);
       tile.classList.add("selected");
 
-      if (selected.length >= 3) {
-        combo++;
-        document.getElementById("combo").textContent =
-          "Combo: " + combo;
+      if (selected.length === 3) {
 
-        setTimeout(() => {
+        const families = selected.map(getRhymeFamily);
+
+        if (
+          families[0] !== null &&
+          families[0] === families[1] &&
+          families[1] === families[2]
+        ) {
+
+          combo++;
+
+          document.getElementById("combo").textContent =
+            "Combo: " + combo;
+
+          message.textContent = "🔥 RHYME COMBO!";
+
+          setTimeout(() => {
+
+            selected.forEach(w => {
+
+              const tiles =
+                document.querySelectorAll(".word");
+
+              tiles.forEach(t => {
+                if (t.textContent === w) {
+                  t.style.visibility = "hidden";
+                }
+              });
+
+            });
+
+            selected = [];
+
+          }, 500);
+
+        } else {
+
+          message.textContent =
+            "❌ Those words don't rhyme!";
+
           selected.forEach(w => {
-            const tiles = document.querySelectorAll(".word");
+
+            const tiles =
+              document.querySelectorAll(".word");
 
             tiles.forEach(t => {
               if (t.textContent === w) {
-                t.style.visibility = "hidden";
+                t.classList.remove("selected");
+                t.classList.add("wrong");
               }
             });
+
           });
 
-          selected = [];
+          setTimeout(() => {
 
-        }, 300);
+            document.querySelectorAll(".word")
+              .forEach(t => t.classList.remove("wrong"));
+
+            selected = [];
+
+            message.textContent =
+              "Connect 3 rhyming words!";
+
+          }, 700);
+        }
       }
     }
 
