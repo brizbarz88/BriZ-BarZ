@@ -11,21 +11,22 @@
       color: white;
       font-family: Arial, sans-serif;
       text-align: center;
+      touch-action: none;
     }
 
     h1 {
-      margin: 20px 0 5px;
+      margin: 18px 0 5px;
     }
 
-    #combo {
-      font-size: 22px;
-      margin: 10px;
+    #stats {
+      font-size: 18px;
+      margin: 8px;
     }
 
     #message {
-      height: 25px;
+      min-height: 25px;
       font-size: 18px;
-      margin: 5px;
+      margin: 8px;
     }
 
     #board {
@@ -34,7 +35,344 @@
       margin: 20px auto;
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 6px;
+      gap: 7px;
+    }
+
+    .word {
+      background: #222;
+      border: 2px solid #555;
+      border-radius: 10px;
+      padding: 18px 4px;
+      font-size: 15px;
+      font-weight: bold;
+      user-select: none;
+      touch-action: none;
+    }
+
+    .selected {
+      background: #8b2cff;
+      border-color: white;
+      transform: scale(1.05);
+    }
+
+    .bomb {
+      background: #c43b20;
+      border-color: #ffb000;
+    }
+
+    .syllable {
+      background: #1677c8;
+      border-color: #55c7ff;
+    }
+
+    .cleared {
+      visibility: hidden;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>🎤 BriZ BarZ</h1>
+
+  <div id="stats">
+    Combo: <span id="combo">0</span>
+    &nbsp; | &nbsp;
+    Score: <span id="score">0</span>
+  </div>
+
+  <div id="message">Touch a word and swipe through rhymes!</div>
+
+  <div id="board"></div>
+
+<script>
+
+const rhymeFamilies = {
+  fire: ["FIRE", "HIGHER", "TIRED", "ENTIRE"],
+  cat: ["CAT", "HAT", "BAT"],
+  light: ["LIGHT", "NIGHT", "FIGHT", "FLIGHT"],
+  blue: ["BLUE", "TRUE", "CREW", "NEW"]
+};
+
+const words = [
+  "FIRE", "HIGHER", "TIRED", "ENTIRE",
+  "CAT", "HAT", "BAT", "DOG",
+  "LIGHT", "NIGHT", "FIGHT", "FLIGHT",
+  "BLUE", "TRUE", "CREW", "NEW"
+];
+
+let selected = [];
+let combo = 0;
+let score = 0;
+let swiping = false;
+
+const board = document.getElementById("board");
+const message = document.getElementById("message");
+
+function getRhymeFamily(word) {
+
+  for (const family in rhymeFamilies) {
+    if (rhymeFamilies[family].includes(word)) {
+      return family;
+    }
+  }
+
+  return null;
+}
+
+function createBoard() {
+
+  board.innerHTML = "";
+
+  words.forEach(word => {
+
+    const tile = document.createElement("div");
+
+    tile.className = "word";
+    tile.textContent = word;
+    tile.dataset.word = word;
+
+    tile.addEventListener("pointerdown", startSwipe);
+    tile.addEventListener("pointerenter", continueSwipe);
+
+    board.appendChild(tile);
+  });
+}
+
+function startSwipe(event) {
+
+  event.preventDefault();
+
+  swiping = true;
+  selected = [];
+
+  selectTile(event.currentTarget);
+}
+
+function continueSwipe(event) {
+
+  if (!swiping) return;
+
+  selectTile(event.currentTarget);
+}
+
+document.addEventListener("pointerup", finishSwipe);
+
+function selectTile(tile) {
+
+  const word = tile.dataset.word;
+
+  if (tile.classList.contains("cleared")) return;
+
+  if (selected.includes(word)) return;
+
+  if (selected.length > 0) {
+
+    const firstFamily =
+      getRhymeFamily(selected[0]);
+
+    const currentFamily =
+      getRhymeFamily(word);
+
+    if (
+      firstFamily === null ||
+      currentFamily === null ||
+      firstFamily !== currentFamily
+    ) {
+
+      message.textContent =
+        "❌ That word breaks the rhyme chain!";
+
+      return;
+    }
+  }
+
+  selected.push(word);
+  tile.classList.add("selected");
+
+  message.textContent =
+    selected.length + " words connected";
+}
+
+function finishSwipe() {
+
+  if (!swiping) return;
+
+  swiping = false;
+
+  if (selected.length >= 2) {
+    completeCombo();
+  } else {
+
+    document.querySelectorAll(".selected")
+      .forEach(tile => tile.classList.remove("selected"));
+
+    selected = [];
+
+    message.textContent =
+      "Connect at least 2 rhyming words!";
+  }
+}
+
+function completeCombo() {
+
+  const amount = selected.length;
+
+  combo++;
+
+  document.getElementById("combo").textContent =
+    combo;
+
+  score += amount * amount * 10;
+
+  document.getElementById("score").textContent =
+    score;
+
+  if (amount === 2) {
+
+    message.textContent =
+      "✅ 2-WORD COMBO!";
+
+  } else if (amount === 3) {
+
+    message.textContent =
+      "🔥 3-WORD COMBO!";
+
+  } else if (amount === 4) {
+
+    message.textContent =
+      "💣 4-WORD BOMB!";
+
+    createBomb();
+
+  } else if (amount === 5) {
+
+    message.textContent =
+      "⭐ 5-WORD SUPER COMBO!";
+
+  } else if (amount === 6) {
+
+    message.textContent =
+      "💥 6-WORD SYLLABLE BOMB!";
+
+    createSyllableBomb();
+
+  } else if (amount === 7) {
+
+    message.textContent =
+      "🚀 7-WORD MEGA COMBO!";
+
+  } else if (amount >= 8) {
+
+    message.textContent =
+      "🌪️ 8-WORD BOARD CHANGE!";
+
+    changeBoard();
+    return;
+  }
+
+  selected.forEach(word => {
+
+    const tile =
+      document.querySelector(
+        '.word[data-word="' + word + '"]'
+      );
+
+    if (tile) {
+      tile.classList.remove("selected");
+      tile.classList.add("cleared");
+    }
+
+  });
+
+  selected = [];
+}
+
+function createBomb() {
+
+  selected.forEach(word => {
+
+    const tile =
+      document.querySelector(
+        '.word[data-word="' + word + '"]'
+      );
+
+    if (tile) {
+      tile.classList.add("bomb");
+    }
+
+  });
+
+  setTimeout(() => {
+
+    const tiles =
+      Array.from(document.querySelectorAll(".word"));
+
+    const targets =
+      tiles.filter(tile =>
+        !tile.classList.contains("cleared")
+      ).slice(0, 4);
+
+    targets.forEach(tile =>
+      tile.classList.add("cleared")
+    );
+
+  }, 300);
+}
+
+function createSyllableBomb() {
+
+  const families =
+    Object.keys(rhymeFamilies);
+
+  const family =
+    families[Math.floor(Math.random() * families.length)];
+
+  const targets =
+    rhymeFamilies[family];
+
+  setTimeout(() => {
+
+    targets.forEach(word => {
+
+      const tile =
+        document.querySelector(
+          '.word[data-word="' + word + '"]'
+        );
+
+      if (tile) {
+        tile.classList.add("syllable");
+        tile.classList.add("cleared");
+      }
+
+    });
+
+  }, 400);
+}
+
+function changeBoard() {
+
+  setTimeout(() => {
+
+    document.querySelectorAll(".word")
+      .forEach(tile => tile.classList.remove("selected"));
+
+    createBoard();
+
+    message.textContent =
+      "🌪️ NEW BOARD! Find your next rhyme chain!";
+
+    selected = [];
+
+  }, 500);
+}
+
+createBoard();
+
+</script>
+
+</body>
+</html>      gap: 6px;
     }
 
     .word {
